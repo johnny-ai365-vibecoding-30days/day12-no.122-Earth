@@ -1,172 +1,217 @@
-import define1 from "./a33468b95d0b15b0@817.js";
+import defineLegend from "./a33468b95d0b15b0@817.js";
 
-function _1(md){return(
-md`<div style="color: grey; font: 13px/25.5px var(--sans-serif); text-transform: uppercase;"><h1 style="display: none;">World choropleth</h1><a href="https://d3js.org/">D3</a> › <a href="/@d3/gallery">Gallery</a></div>
-
-# World choropleth
-
-Health-adjusted life expectancy, 2016. Data: [WHO](https://www.who.int/gho/publications/world_health_statistics/2018/en/)`
-)}
-
-function _chart(d3,hale,Legend,countries,countrymesh)
-{
-
-  // Specify the chart’s dimensions.
-  const width = 928;
-  const marginTop = 46;
+function _page(d3, productionData, Legend, countries, countrymesh, rename, displayNames) {
+  const width = 960;
+  const marginTop = 60;
   const height = width / 2 + marginTop;
 
-  // Fit the projection.
-  const projection = d3.geoEqualEarth().fitExtent([[2, marginTop + 2], [width - 2, height]], {type: "Sphere"});
+  const year = d3.max(productionData, (d) => d.year);
+  const valueMap = new Map(
+    productionData.map((d) => [rename.get(d.country) ?? d.country, d.production])
+  );
+  const values = Array.from(valueMap.values());
+  const color = d3
+    .scaleSequential(d3.extent(values), d3.interpolateYlGnBu)
+    .unknown("#f0f0f0");
+
+  const projection = d3
+    .geoEqualEarth()
+    .fitExtent(
+      [
+        [2, marginTop + 2],
+        [width - 2, height],
+      ],
+      { type: "Sphere" }
+    );
   const path = d3.geoPath(projection);
 
-  // Index the values and create the color scale.
-  const valuemap = new Map(hale.map(d => [d.name, d.hale]));
-  const color = d3.scaleSequential(d3.extent(valuemap.values()), d3.interpolateYlGnBu);
+  const container = document.createElement("div");
+  Object.assign(container.style, {
+    maxWidth: "1040px",
+    margin: "0 auto",
+    padding: "24px",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    color: "#1f2937",
+  });
 
-  // Create the SVG container.
-  const svg = d3.create("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .attr("style", "max-width: 100%; height: auto;");
+  const title = document.createElement("h1");
+  title.textContent = `2024 年全球稀土產量地圖`;
+  title.style.margin = "0 0 8px";
+  container.append(title);
 
-  // Append the legend.
-  svg.append("g")
-      .attr("transform", "translate(20,0)")
-      .append(() => Legend(color, {title: "Healthy life expectancy (years)", width: 260}));
+  const intro = document.createElement("p");
+  intro.textContent = `資料來源：data.json。以等積圓柱投影顯示各國 2024 年稀土產量（公噸），將滑鼠移到國家可檢視數值。`;
+  intro.style.margin = "0 0 16px";
+  intro.style.lineHeight = "1.6";
+  container.append(intro);
 
-  // Add a white sphere with a black border.
-  svg.append("path")
-    .datum({type: "Sphere"})
-    .attr("fill", "white")
-    .attr("stroke", "currentColor")
+  const chartWrapper = document.createElement("div");
+  Object.assign(chartWrapper.style, {
+    position: "relative",
+    background: "white",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+    padding: "12px",
+  });
+  container.append(chartWrapper);
+
+  const tooltip = document.createElement("div");
+  Object.assign(tooltip.style, {
+    position: "absolute",
+    pointerEvents: "none",
+    background: "rgba(31, 41, 55, 0.92)",
+    color: "white",
+    padding: "8px 10px",
+    borderRadius: "8px",
+    fontSize: "14px",
+    lineHeight: "1.4",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+    display: "none",
+    transform: "translate(10px, 10px)",
+  });
+  chartWrapper.append(tooltip);
+
+  const svg = d3
+    .create("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewBox", [0, 0, width, height])
+    .attr("style", "max-width: 100%; height: auto;");
+
+  svg
+    .append("g")
+    .attr("transform", "translate(20,0)")
+    .append(() => Legend(color, { title: "年產量（公噸）", width: 260 }));
+
+  svg
+    .append("path")
+    .datum({ type: "Sphere" })
+    .attr("fill", "#f9fafb")
+    .attr("stroke", "#374151")
+    .attr("stroke-width", 0.6)
     .attr("d", path);
 
-  // Add a path for each country and color it according te this data.
-  svg.append("g")
+  const countriesGroup = svg.append("g");
+
+  const handleMove = (event, d) => {
+    const name = d.properties.name;
+    const production = valueMap.get(name);
+    const label = displayNames.get(name) ?? name;
+
+    tooltip.style.display = "block";
+    tooltip.textContent = production
+      ? `${label}：${production.toLocaleString()} 公噸`
+      : `${label}：無資料`;
+
+    const [x, y] = d3.pointer(event);
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+
+    d3.select(event.currentTarget).attr("stroke", "#111827").attr("stroke-width", 1.2);
+  };
+
+  const handleLeave = (event) => {
+    tooltip.style.display = "none";
+    d3.select(event.currentTarget).attr("stroke", "white").attr("stroke-width", 0.6);
+  };
+
+  countriesGroup
     .selectAll("path")
     .data(countries.features)
     .join("path")
-      .attr("fill", d => color(valuemap.get(d.properties.name)))
-      .attr("d", path)
-    .append("title")
-      .text(d => `${d.properties.name}\n${valuemap.get(d.properties.name)}`);
+    .attr("fill", (d) => color(valueMap.get(d.properties.name)))
+    .attr("stroke", "white")
+    .attr("stroke-width", 0.6)
+    .attr("d", path)
+    .on("pointerenter", handleMove)
+    .on("pointermove", handleMove)
+    .on("pointerleave", handleLeave);
 
-  // Add a white mesh.
-  svg.append("path")
+  svg
+    .append("path")
     .datum(countrymesh)
     .attr("fill", "none")
     .attr("stroke", "white")
+    .attr("stroke-width", 0.6)
     .attr("d", path);
 
-  return svg.node();
+  chartWrapper.append(svg.node());
+
+  const footnote = document.createElement("p");
+  footnote.textContent = year
+    ? `最新年份：${year}，單位：公噸。灰色區域表示 data.json 中未提供資料。`
+    : `灰色區域表示 data.json 中未提供資料，單位：公噸。`;
+  footnote.style.margin = "12px 0 0";
+  footnote.style.fontSize = "13px";
+  footnote.style.color = "#4b5563";
+  footnote.style.lineHeight = "1.5";
+  container.append(footnote);
+
+  return container;
 }
 
+async function _productionData(d3) {
+  const data = await d3.json("./data.json");
+  return Array.isArray(data) ? data : [];
+}
 
-function _3(md){return(
-md`The *hale* dataset regrettably doesn’t include ISO 3166-1 numeric identifiers; it only has country names. Country names are often recorded inconsistently, so here we use a *rename* map to patch a handful of country names to the values used by our GeoJSON which comes from [Natural Earth](https://naturalearthdata.com) by way of the [TopoJSON World Atlas](https://github.com/topojson/world-atlas). If your data has ISO 3166-1 numeric identifiers, then you should use those and drop the *featureId* option above.`
-)}
+function _rename() {
+  return new Map([["United States", "United States of America"]]);
+}
 
-async function _hale(FileAttachment,rename){return(
-(await FileAttachment("hale.csv").csv()).map(d => ({name: rename.get(d.country) || d.country, hale: +d.hale}))
-)}
+function _displayNames() {
+  return new Map([
+    ["China", "中國"],
+    ["United States of America", "美國"],
+    ["Myanmar", "緬甸"],
+    ["Australia", "澳洲"],
+    ["Thailand", "泰國"],
+    ["India", "印度"],
+    ["Russia", "俄羅斯"],
+    ["Vietnam", "越南"],
+  ]);
+}
 
-function _rename(){return(
-new Map([
-  ["Antigua and Barbuda", "Antigua and Barb."],
-  ["Bolivia (Plurinational State of)", "Bolivia"],
-  ["Bosnia and Herzegovina", "Bosnia and Herz."],
-  ["Brunei Darussalam", "Brunei"],
-  ["Central African Republic", "Central African Rep."],
-  ["Cook Islands", "Cook Is."],
-  ["Democratic People's Republic of Korea", "North Korea"],
-  ["Democratic Republic of the Congo", "Dem. Rep. Congo"],
-  ["Dominican Republic", "Dominican Rep."],
-  ["Equatorial Guinea", "Eq. Guinea"],
-  ["Iran (Islamic Republic of)", "Iran"],
-  ["Lao People's Democratic Republic", "Laos"],
-  ["Marshall Islands", "Marshall Is."],
-  ["Micronesia (Federated States of)", "Micronesia"],
-  ["Republic of Korea", "South Korea"],
-  ["Republic of Moldova", "Moldova"],
-  ["Russian Federation", "Russia"],
-  ["Saint Kitts and Nevis", "St. Kitts and Nevis"],
-  ["Saint Vincent and the Grenadines", "St. Vin. and Gren."],
-  ["Sao Tome and Principe", "São Tomé and Principe"],
-  ["Solomon Islands", "Solomon Is."],
-  ["South Sudan", "S. Sudan"],
-  ["Swaziland", "eSwatini"],
-  ["Syrian Arab Republic", "Syria"],
-  ["The former Yugoslav Republic of Macedonia", "Macedonia"],
-  // ["Tuvalu", ?],
-  ["United Republic of Tanzania", "Tanzania"],
-  ["Venezuela (Bolivarian Republic of)", "Venezuela"],
-  ["Viet Nam", "Vietnam"]
-])
-)}
+function _world(FileAttachment) {
+  return FileAttachment("countries-50m.json").json();
+}
 
-function _6(md){return(
-md`The world geometries are represented in TopoJSON, which we convert into GeoJSON using topojson.feature. (TopoJSON, like D3, is available by default in all Observable notebooks.) These geometries are represented in spherical coordinates (*i.e.*, latitude and longitude in degrees); therefore we’ll need the *projection* option above to convert to screen coordinates (*i.e.*, pixels).`
-)}
+function _countries(topojson, world) {
+  return topojson.feature(world, world.objects.countries);
+}
 
-function _world(FileAttachment){return(
-FileAttachment("countries-50m.json").json()
-)}
-
-function _countries(topojson,world){return(
-topojson.feature(world, world.objects.countries)
-)}
-
-function _9(md){return(
-md`The *countrymesh* is just the internal borders between countries, *i.e.*, everything but the coastlines. This avoids an additional stroke on the perimeter of the map, which would otherwise mask intricate features such as islands and inlets. (Try removing the last argument to topojson.mesh below to see the effect.)`
-)}
-
-function _countrymesh(topojson,world){return(
-topojson.mesh(world, world.objects.countries, (a, b) => a !== b)
-)}
-
-function _12(md){return(
-md`Alternatively, use [Observable Plot](https://observablehq.com/plot)’s concise API to create [maps](https://observablehq.com/@observablehq/plot-mapping) with the [geo mark](https://observablehq.com/plot/marks/geo).`
-)}
-
-function _13(Plot,countries,hale,countrymesh){return(
-Plot.plot({
-  projection: "equal-earth",
-  width: 928,
-  height: 928 / 2,
-  color: {scheme: "YlGnBu", unknown: "#ccc", label: "Healthy life expectancy (years)", legend: true},
-  marks: [
-    Plot.sphere({fill: "white", stroke: "currentColor"}),
-    Plot.geo(countries, {
-      fill: (map => d => map.get(d.properties.name))(new Map(hale.map(d => [d.name, d.hale]))),
-    }),
-    Plot.geo(countrymesh, {stroke: "white"}),
- ]
-})
-)}
+function _countrymesh(topojson, world) {
+  return topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
+}
 
 export default function define(runtime, observer) {
   const main = runtime.module();
-  function toString() { return this.url; }
+  function toString() {
+    return this.url;
+  }
   const fileAttachments = new Map([
-    ["countries-50m.json", {url: new URL("./files/105124169f32536c2c86c7d6a237673814f21444a667f2cb8c4e2b3f7b3cfae56fac5346a6ac7fd5cc02b63fcda1b08ac4e86a7c86896e5eeb37b51ccceb8f69.json", import.meta.url), mimeType: "application/json", toString}],
-    ["hale.csv", {url: new URL("./files/b51e0b67725c9f4f6fad0318d640337b3451be7f9c7b8cee66e2cce64369444637402f13e2ce8a83ab013df9ece12f285d1cfd81c28faaaf7dad30f5eadda875.csv", import.meta.url), mimeType: "text/csv", toString}]
+    [
+      "countries-50m.json",
+      {
+        url: new URL(
+          "./files/105124169f32536c2c86c7d6a237673814f21444a667f2cb8c4e2b3f7b3cfae56fac5346a6ac7fd5cc02b63fcda1b08ac4e86a7c86896e5eeb37b51ccceb8f69.json",
+          import.meta.url
+        ),
+        mimeType: "application/json",
+        toString,
+      },
+    ],
   ]);
-  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
-  main.variable(observer()).define(["md"], _1);
-  main.variable(observer("chart")).define("chart", ["d3","hale","Legend","countries","countrymesh"], _chart);
-  main.variable(observer()).define(["md"], _3);
-  main.variable(observer("hale")).define("hale", ["FileAttachment","rename"], _hale);
-  main.variable(observer("rename")).define("rename", _rename);
-  main.variable(observer()).define(["md"], _6);
-  main.variable(observer("world")).define("world", ["FileAttachment"], _world);
-  main.variable(observer("countries")).define("countries", ["topojson","world"], _countries);
-  main.variable(observer()).define(["md"], _9);
-  main.variable(observer("countrymesh")).define("countrymesh", ["topojson","world"], _countrymesh);
-  const child1 = runtime.module(define1);
+  main.builtin("FileAttachment", runtime.fileAttachments((name) => fileAttachments.get(name)));
+  const child1 = runtime.module(defineLegend);
   main.import("Legend", child1);
-  main.variable(observer()).define(["md"], _12);
-  main.variable(observer()).define(["Plot","countries","hale","countrymesh"], _13);
+  main.variable(observer("page")).define("page", ["d3", "productionData", "Legend", "countries", "countrymesh", "rename", "displayNames"], _page);
+  main.variable(observer("productionData")).define("productionData", ["d3"], _productionData);
+  main.variable(observer("rename")).define("rename", _rename);
+  main.variable(observer("displayNames")).define("displayNames", _displayNames);
+  main.variable(observer("world")).define("world", ["FileAttachment"], _world);
+  main.variable(observer("countries")).define("countries", ["topojson", "world"], _countries);
+  main.variable(observer("countrymesh")).define("countrymesh", ["topojson", "world"], _countrymesh);
   return main;
 }
