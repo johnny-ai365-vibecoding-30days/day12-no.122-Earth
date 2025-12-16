@@ -1,0 +1,50 @@
+[
+    {
+        "country": "China",
+        "production": 270000,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "United States",
+        "production": 45000,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "Myanmar",
+        "production": 31000,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "Australia",
+        "production": 13000,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "Thailand",
+        "production": 13000,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "India",
+        "production": 2900,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "Russia",
+        "production": 2500,
+        "unit": "metric_tons",
+        "year": 2024
+    },
+    {
+        "country": "Vietnam",
+        "production": 300,
+        "unit": "metric_tons",
+        "year": 2024
+    }
+]
