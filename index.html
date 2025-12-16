@@ -1,14 +1,86 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<title>World choropleth</title>
-<link rel="stylesheet" type="text/css" href="./inspector.css">
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>全球稀土產量地圖</title>
+  <link rel="stylesheet" type="text/css" href="./inspector.css">
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    body {
+      font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 24px 20px 40px;
+      color: #1f2933;
+      background: #f8fafc;
+    }
+
+    header {
+      max-width: 1080px;
+      margin: 0 auto 12px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin: 0 0 6px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    p.description {
+      margin: 0;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 16px 8px;
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      transition: opacity 120ms ease-out, transform 120ms ease-out;
+      transform: translateY(4px);
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
 <body>
-<script type="module">
+  <header>
+    <h1>全球稀土產量地圖</h1>
+    <p class="description">根據 <code>data.json</code> 的 2024 年資料，展示主要國家稀土產量。將滑鼠移到地圖上可查看國家名稱與產量。</p>
+  </header>
+  <main id="observablehq"></main>
 
-import define from "./index.js";
-import {Runtime, Library, Inspector} from "./runtime.js";
+  <script type="module">
+  import define from "./index.js";
+  import {Runtime, Inspector} from "./runtime.js";
 
-const runtime = new Runtime();
-const main = runtime.module(define, Inspector.into(document.body));
-
-</script>
+  const runtime = new Runtime();
+  runtime.module(define, Inspector.into(document.querySelector("#observablehq")));
+  </script>
+</body>
+</html>
